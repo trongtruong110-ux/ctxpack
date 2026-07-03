@@ -8,7 +8,7 @@ questions every time: *will this fit in the context window?* and *am I about to
 paste my API keys into a prompt?* `ctxpack` answers both.
 
 ```bash
-npx ctxpack . --model claude-fable-5
+npx github:trongtruong110-ux/ctxpack . --model claude-fable-5
 ```
 
 ```
@@ -59,9 +59,20 @@ ctxpack . -f json -o context.json
 
 ## Install
 
+No install needed — run it straight from GitHub with npx:
+
 ```bash
-npm install -g ctxpack     # or just use npx ctxpack
+npx github:trongtruong110-ux/ctxpack . -o context.md
 ```
+
+Or clone and link it:
+
+```bash
+git clone https://github.com/trongtruong110-ux/ctxpack
+cd ctxpack && npm link      # now `ctxpack` is on your PATH
+```
+
+_(An `npm i -g ctxpack` release is coming.)_
 
 ## Formats
 
