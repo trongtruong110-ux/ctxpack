@@ -13,6 +13,7 @@ function parseArgs(argv) {
     else if (a === "--model" || a === "-m") opts.model = argv[++i];
     else if (a === "--out" || a === "-o") opts.out = argv[++i];
     else if (a === "--ignore" || a === "-i") opts.ignore.push(argv[++i]);
+    else if (a === "--fit") opts.fit = Number(argv[++i]);
     else if (a === "--max-kb") opts.maxKb = Number(argv[++i]);
     else if (a === "--no-redact") opts.redact = false;
     else if (a === "--check") opts.check = true;
@@ -32,6 +33,7 @@ Options:
   -m, --model <name>   target model for budgeting (default: claude-fable-5)
   -o, --out <file>     write output to file instead of stdout
   -i, --ignore <glob>  extra path(s) to skip (repeatable), e.g. -i "test/**"
+      --fit <tokens>   trim the largest files' bodies to fit a token budget
       --max-kb <n>     skip files larger than n KB (default: 512)
       --no-redact      disable automatic secret redaction (not recommended)
       --check          CI mode: scan for secrets, report them, exit 1 if any found
@@ -63,6 +65,7 @@ function main() {
     redact: opts.redact,
     maxBytes: opts.maxKb * 1024,
     extraIgnores: opts.ignore,
+    fitTokens: opts.fit || 0,
   });
 
   const model = resolveModel(opts.model);
@@ -79,6 +82,7 @@ function main() {
   log("");
   log(`ctxpack: ${stats.files} files packed`);
   log(`  tokens: ~${stats.totalTokens.toLocaleString()}  (${pct}% of ${model.label} ${model.context.toLocaleString()} ctx)`);
+  if (stats.trimmed > 0) log(`  trimmed: ${stats.trimmed} file(s) omitted to fit ${opts.fit.toLocaleString()} tokens`);
   if (stats.redacted > 0) log(`  redacted: ${stats.redacted} secret(s)`);
   if (stats.skippedBinary > 0) log(`  skipped: ${stats.skippedBinary} binary file(s)`);
   if (stats.totalTokens > model.context) {

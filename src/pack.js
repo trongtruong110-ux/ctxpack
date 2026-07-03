@@ -42,6 +42,7 @@ export function pack(root, opts = {}) {
     redact = true,
     format = "markdown",
     extraIgnores = [],
+    fitTokens = 0,
   } = opts;
 
   const ig = loadIgnores(root, extraIgnores);
@@ -61,7 +62,23 @@ export function pack(root, opts = {}) {
       content = r.text;
       redactedTotal += r.count;
     }
-    included.push({ rel: f.rel, content, tokens: estimateTokens(content) });
+    included.push({ rel: f.rel, content, tokens: estimateTokens(content), omitted: false });
+  }
+
+  // Fit-to-budget: if the bundle would exceed the target, omit the bodies of
+  // the largest files first (keeping them listed) until it fits. This preserves
+  // the file map so the model still knows what exists.
+  let trimmed = 0;
+  if (fitTokens > 0) {
+    const overhead = () => estimateTokens(render(included, format));
+    while (overhead() > fitTokens) {
+      const biggest = included
+        .filter((f) => !f.omitted)
+        .sort((a, b) => b.tokens - a.tokens)[0];
+      if (!biggest) break; // nothing left to trim
+      biggest.omitted = true;
+      trimmed++;
+    }
   }
 
   const output = render(included, format);
@@ -73,8 +90,9 @@ export function pack(root, opts = {}) {
       files: included.length,
       redacted: redactedTotal,
       skippedBinary,
+      trimmed,
       totalTokens,
-      perFile: included.map((f) => ({ rel: f.rel, tokens: f.tokens })),
+      perFile: included.map((f) => ({ rel: f.rel, tokens: f.tokens, omitted: f.omitted })),
     },
   };
 }
@@ -109,11 +127,16 @@ function fenceLang(rel) {
 
 function render(files, format) {
   if (format === "json") {
-    return JSON.stringify({ files: files.map((f) => ({ path: f.rel, content: f.content })) }, null, 2);
+    return JSON.stringify({
+      files: files.map((f) => (f.omitted
+        ? { path: f.rel, omitted: true }
+        : { path: f.rel, content: f.content })),
+    }, null, 2);
   }
   if (format === "xml") {
     const parts = ["<codebase>"];
     for (const f of files) {
+      if (f.omitted) { parts.push(`  <file path="${f.rel}" omitted="true" />`); continue; }
       parts.push(`  <file path="${f.rel}">`);
       parts.push(f.content);
       parts.push("  </file>");
@@ -124,9 +147,12 @@ function render(files, format) {
   // markdown (default)
   const parts = ["# Codebase context\n"];
   parts.push("## Files\n");
-  for (const f of files) parts.push(`- \`${f.rel}\` (~${f.tokens} tokens)`);
+  for (const f of files) {
+    parts.push(`- \`${f.rel}\` (~${f.tokens} tokens${f.omitted ? ", body omitted to fit budget" : ""})`);
+  }
   parts.push("");
   for (const f of files) {
+    if (f.omitted) continue;
     parts.push(`\n## \`${f.rel}\`\n`);
     parts.push("```" + fenceLang(f.rel));
     parts.push(f.content);

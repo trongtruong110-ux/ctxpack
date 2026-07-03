@@ -41,8 +41,25 @@ ctxpack [path] [options]
   -o, --out <file>     write to a file instead of stdout
       --max-kb <n>     skip files larger than n KB (default: 512)
       --no-redact      disable secret redaction (not recommended)
+      --fit <tokens>   trim the largest files to fit a token budget
       --check          CI mode: scan for secrets, exit 1 if any are found
   -h, --help           show help
+```
+
+### Fit a token budget
+
+When a repo is too big for the window, `--fit` keeps the bundle under a target
+by omitting the **largest** file bodies first — but still lists every file, so
+the model knows the full shape of the project:
+
+```bash
+ctxpack . --fit 60000 -o context.md
+```
+
+```
+ctxpack: 220 files packed
+  tokens: ~59,400
+  trimmed: 34 file(s) omitted to fit 60,000 tokens
 ```
 
 ### CI mode — fail the build if a secret leaks

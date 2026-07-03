@@ -83,6 +83,23 @@ test("findSecrets: clean text yields nothing", () => {
   assert.equal(findSecrets("function add(a,b){return a+b}").length, 0);
 });
 
+test("pack --fit: trims largest bodies to fit a token budget", async () => {
+  const { pack } = await import("../src/pack.js");
+  const { mkdtempSync, writeFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const dir = mkdtempSync(join(tmpdir(), "ctxpack-fit-"));
+  writeFileSync(join(dir, "small.js"), "const a = 1;\n");
+  writeFileSync(join(dir, "big.js"), "x".repeat(20000) + "\n");
+  const full = pack(dir, {});
+  const fit = pack(dir, { fitTokens: 400 });
+  assert.ok(fit.stats.totalTokens < full.stats.totalTokens, "fit reduces tokens");
+  assert.ok(fit.stats.trimmed >= 1, "at least one file trimmed");
+  // the big file is listed but its body is omitted
+  assert.ok(fit.output.includes("big.js"), "trimmed file still listed");
+  assert.ok(!fit.output.includes("x".repeat(20000)), "big body omitted");
+});
+
 test("tokens: estimate is positive and scales", () => {
   assert.equal(estimateTokens(""), 0);
   const small = estimateTokens("const x = 1;");
