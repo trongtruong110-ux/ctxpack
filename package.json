@@ -1,0 +1,17 @@
+{
+  "name": "ctxpack",
+  "version": "0.1.0",
+  "description": "Package a codebase into an LLM-optimized context bundle with accurate per-model token budgeting and automatic secret redaction.",
+  "type": "module",
+  "bin": {
+    "ctxpack": "src/index.js"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "keywords": ["llm", "context", "ai", "claude", "codex", "token", "redaction", "repomix"],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}
