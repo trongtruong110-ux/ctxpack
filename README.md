@@ -62,8 +62,11 @@ ctxpack --check: 1 potential secret(s) in 34 files:
 Drop it into a pre-commit hook or CI step:
 
 ```yaml
-- run: npx github:trongtruong110-ux/ctxpack . --check
+- run: npx github:trongtruong110-ux/ctxpack . --check -i "test/**" -i "**/*.example"
 ```
+
+Use `-i / --ignore` (repeatable) to skip fixtures or example files that contain
+deliberately fake credentials.
 
 Examples:
 

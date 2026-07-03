@@ -5,13 +5,14 @@ import { pack, scan } from "./pack.js";
 import { resolveModel } from "./tokens.js";
 
 function parseArgs(argv) {
-  const opts = { root: ".", format: "markdown", model: "claude-fable-5", redact: true, out: null, maxKb: 512 };
+  const opts = { root: ".", format: "markdown", model: "claude-fable-5", redact: true, out: null, maxKb: 512, ignore: [] };
   const rest = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--format" || a === "-f") opts.format = argv[++i];
     else if (a === "--model" || a === "-m") opts.model = argv[++i];
     else if (a === "--out" || a === "-o") opts.out = argv[++i];
+    else if (a === "--ignore" || a === "-i") opts.ignore.push(argv[++i]);
     else if (a === "--max-kb") opts.maxKb = Number(argv[++i]);
     else if (a === "--no-redact") opts.redact = false;
     else if (a === "--check") opts.check = true;
@@ -30,6 +31,7 @@ Options:
   -f, --format <fmt>   markdown | xml | json   (default: markdown)
   -m, --model <name>   target model for budgeting (default: claude-fable-5)
   -o, --out <file>     write output to file instead of stdout
+  -i, --ignore <glob>  extra path(s) to skip (repeatable), e.g. -i "test/**"
       --max-kb <n>     skip files larger than n KB (default: 512)
       --no-redact      disable automatic secret redaction (not recommended)
       --check          CI mode: scan for secrets, report them, exit 1 if any found
@@ -44,7 +46,7 @@ function main() {
   const root = resolve(opts.root);
 
   if (opts.check) {
-    const { findings, filesScanned } = scan(root, { maxBytes: opts.maxKb * 1024 });
+    const { findings, filesScanned } = scan(root, { maxBytes: opts.maxKb * 1024, extraIgnores: opts.ignore });
     const log = (s) => process.stderr.write(s + "\n");
     if (findings.length === 0) {
       log(`ctxpack --check: no secrets found in ${filesScanned} files ✓`);
@@ -60,6 +62,7 @@ function main() {
     format: opts.format,
     redact: opts.redact,
     maxBytes: opts.maxKb * 1024,
+    extraIgnores: opts.ignore,
   });
 
   const model = resolveModel(opts.model);

@@ -41,6 +41,25 @@ test("redact: masks known secret formats", () => {
   assert.ok(r.text.includes("password = "), "keeps the assignment name");
 });
 
+test("redact: catches extended provider formats", () => {
+  const cases = [
+    'stripe = "sk_live_' + "a".repeat(30) + '"',
+    'npm_' + "b".repeat(36),
+    "GOCSPX-" + "c".repeat(28),
+    "github_pat_" + "d".repeat(60),
+    "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dQw4w9WgXcQabcdefghij",
+  ];
+  for (const c of cases) {
+    const r = redact(c);
+    assert.ok(r.count >= 1, `should redact: ${c.slice(0, 20)}`);
+  }
+});
+
+test("redact: does not flag ordinary identifiers", () => {
+  const ok = "const skateboard = 1; let token_count = 42; function key() {}";
+  assert.equal(redact(ok).count, 0);
+});
+
 test("redact: leaves clean code untouched", () => {
   const input = "function add(a, b) { return a + b; }";
   const r = redact(input);
