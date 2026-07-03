@@ -111,6 +111,11 @@ Redaction is heuristic and errs toward safety, but it is not a guarantee — tre
 any generated bundle as you would the source. Disable with `--no-redact` only
 for repos you know are secret-free.
 
+## Writeups
+
+- [Stop pasting your API keys into ChatGPT: a safer way to feed a codebase to an LLM](https://dev.to/cu_thinvreview_b2/stop-pasting-your-api-keys-into-chatgpt-a-safer-way-to-feed-a-codebase-to-an-llm-3j35)
+- [A 2-minute pre-commit hook that stops you from committing API keys](https://dev.to/cu_thinvreview_b2/a-2-minute-pre-commit-hook-that-stops-you-from-committing-api-keys-5ca1)
+
 ## License
 
 MIT
