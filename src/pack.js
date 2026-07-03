@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { loadIgnores } from "./ignore.js";
-import { redact as redactText } from "./redact.js";
+import { redact as redactText, findSecrets } from "./redact.js";
 import { estimateTokens } from "./tokens.js";
 
 function isProbablyBinary(buf) {
@@ -77,6 +77,26 @@ export function pack(root, opts = {}) {
       perFile: included.map((f) => ({ rel: f.rel, tokens: f.tokens })),
     },
   };
+}
+
+// CI mode: walk the tree and report every file that contains a secret,
+// without emitting the secret itself. Returns { findings, filesScanned }.
+export function scan(root, opts = {}) {
+  const { maxBytes = 512 * 1024, extraIgnores = [] } = opts;
+  const ig = loadIgnores(root, extraIgnores);
+  const files = walk(root, ig, maxBytes);
+  const findings = [];
+  let filesScanned = 0;
+  for (const f of files) {
+    let buf;
+    try { buf = readFileSync(f.full); } catch { continue; }
+    if (isProbablyBinary(buf)) continue;
+    filesScanned++;
+    for (const hit of findSecrets(buf.toString("utf8"))) {
+      findings.push({ file: f.rel, line: hit.line, type: hit.label });
+    }
+  }
+  return { findings, filesScanned };
 }
 
 function fenceLang(rel) {

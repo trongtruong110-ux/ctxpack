@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { loadIgnores } from "../src/ignore.js";
-import { redact } from "../src/redact.js";
+import { redact, findSecrets } from "../src/redact.js";
 import { estimateTokens } from "../src/tokens.js";
 
 test("ignore: default dirs and extensions", () => {
@@ -46,6 +46,22 @@ test("redact: leaves clean code untouched", () => {
   const r = redact(input);
   assert.equal(r.count, 0);
   assert.equal(r.text, input);
+});
+
+test("findSecrets: reports line numbers and types, hides the value", () => {
+  const text = "clean line\nconst k = \"sk-ant-api03-abcdefghij1234567890XYZ\";\nmore\nAKIAIOSFODNN7EXAMPLE\n";
+  const hits = findSecrets(text);
+  assert.equal(hits.length, 2);
+  assert.equal(hits[0].line, 2);
+  assert.equal(hits[0].label, "ANTHROPIC_KEY");
+  assert.equal(hits[1].line, 4);
+  assert.equal(hits[1].label, "AWS_ACCESS_KEY_ID");
+  // findings never carry the raw secret
+  assert.ok(!JSON.stringify(hits).includes("sk-ant-api03-abcdefghij"));
+});
+
+test("findSecrets: clean text yields nothing", () => {
+  assert.equal(findSecrets("function add(a,b){return a+b}").length, 0);
 });
 
 test("tokens: estimate is positive and scales", () => {

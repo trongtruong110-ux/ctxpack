@@ -41,7 +41,28 @@ ctxpack [path] [options]
   -o, --out <file>     write to a file instead of stdout
       --max-kb <n>     skip files larger than n KB (default: 512)
       --no-redact      disable secret redaction (not recommended)
+      --check          CI mode: scan for secrets, exit 1 if any are found
   -h, --help           show help
+```
+
+### CI mode — fail the build if a secret leaks
+
+`ctxpack --check` scans your tree and exits non-zero if it finds anything that
+looks like a credential, reporting the location without printing the secret:
+
+```
+$ ctxpack . --check
+ctxpack --check: 1 potential secret(s) in 34 files:
+
+  src/config.js:12  ANTHROPIC_KEY
+
+✗ failing — remove or ignore these before committing.
+```
+
+Drop it into a pre-commit hook or CI step:
+
+```yaml
+- run: npx github:trongtruong110-ux/ctxpack . --check
 ```
 
 Examples:

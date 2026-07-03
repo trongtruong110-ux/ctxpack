@@ -30,3 +30,19 @@ export function redact(text) {
   }
   return { text: out, count };
 }
+
+// Locate secrets without exposing them — used by CI `--check` mode. Returns
+// one finding per match with its 1-based line number and the secret type.
+export function findSecrets(text) {
+  const findings = [];
+  for (const [re, label] of PATTERNS) {
+    const rx = new RegExp(re.source, re.flags);
+    let m;
+    while ((m = rx.exec(text)) !== null) {
+      const line = text.slice(0, m.index).split("\n").length;
+      findings.push({ label, line });
+      if (m.index === rx.lastIndex) rx.lastIndex++; // guard against zero-width
+    }
+  }
+  return findings.sort((a, b) => a.line - b.line);
+}
